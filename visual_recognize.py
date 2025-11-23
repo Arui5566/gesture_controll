@@ -1,6 +1,16 @@
 import cv2
 from ultralytics import YOLO
 from sliding_window import SlidingWindow
+import socket
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(("127.0.0.1", 8888))   # Webots controller 监听 8888
+print("Connected to Webots!")
+
+def send_cmd(cmd):
+    client.send(cmd.encode())
+
+last_sent = None
 
 model = YOLO('gestures.pt')
 cap = cv2.VideoCapture(0)
@@ -67,6 +77,17 @@ while True:
 
         stable_gesture = sw.get_stable()
 
+        if stable_gesture != last_sent:
+            if stable_gesture == "like":
+                send_cmd("UP")
+            elif stable_gesture == "dislike":
+                send_cmd("DOWN")
+            elif stable_gesture == "palm":
+                send_cmd("OPEN")
+            elif stable_gesture == "grabbing":
+                send_cmd("CLOSE")
+
+            last_sent = stable_gesture
 
         cv2.putText(annotated_frame, f'Stable: {stable_gesture}',
                     (20, 40), cv2.FONT_HERSHEY_SIMPLEX,
